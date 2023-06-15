@@ -38,14 +38,28 @@ function get_degrees(vector){
 	return degrees
 }
 
+function DeleteFrontArrayElement(array){
+	let recover_elements = []
+	for(let i=1; i<array.length; i++){
+		recover_elements.push(array[i])
+	}
+	return recover_elements
+}
+
+
 function hexagon(degrees){
-	conditions = [[degrees < 60 && degrees > 0, (540+360)/2],
-				[degrees < 360 && degrees > 300, 360],
-				[degrees < 300 && degrees > 240, (180+360)/2],
-				[degrees < 240 && degrees > 180, (0+180)/2],
-				[degrees < 180 && degrees > 120, 0],
-				[degrees < 120 && degrees > 60, (540+720)/2]]
-	return conditions
+	conditions = [[degrees <= 60 && degrees >= 0, (540+360)/2],
+				[degrees <= 360 && degrees >= 300, 360],
+				[degrees <= 300 && degrees >= 240, (180+360)/2],
+				[degrees <= 240 && degrees >= 180, (0+180)/2],
+				[degrees <= 180 && degrees >= 120, 0],
+				[degrees <= 120 && degrees >= 60, (540+720)/2]]
+	for(condition in conditions){
+		if (conditions[condition][0]){
+			return conditions[condition][1]
+			break
+		}
+	}
 }
 
 class Sprite {
@@ -109,7 +123,7 @@ class Instance{
 		this.Instances = []
 		this.points = 0
 		this.objects = objects
-		this.instance_directions = []
+		this.instance_directions = [[]]
 		this.game_over_bool = false
 	}
 	shoot(){
@@ -122,20 +136,17 @@ class Instance{
 		let radius = distance([0,0],[canvas.height/2, canvas.height/2])
 		if(instance.stats.velocity.x == 0 && instance.stats.velocity.y == 0 && instance.animate_id == 0){
 			let rand = random_int(1,359)
-			let conditions = hexagon(rand)
+			let condition = hexagon(rand)
 			let dir = [0,-1]
-			for(let condition in conditions){
-				if(conditions[condition][0]){
-					dir[0] = -Math.sin(Math.PI/360*conditions[condition][1])
-					dir[1] = -Math.cos(Math.PI/360*conditions[condition][1])
-				}
-			}
+
+			dir[0] = -Math.sin(Math.PI/360*condition)
+			dir[1] = -Math.cos(Math.PI/360*condition)
 
 			instance.stats.x = player_x - dir[0]*radius
 			instance.stats.y = player_y - dir[1]*radius
 			instance.stats.velocity.x = dir[0]
 			instance.stats.velocity.y = dir[1]
-			this.instance_directions.push(rand)
+			this.instance_directions[0].push(condition)
 		}
 	}
 	fade(click_pos){
@@ -143,51 +154,52 @@ class Instance{
 		let player_y = this.player.stats.y + this.player.stats.height/2
 		let prev_points = this.points
 		let green = 250
-		let yellow = 300
-		let conditions01 = hexagon(get_degrees(normalize([player_x, player_y],click_pos)))
-		for(let instance in this.Instances){
-			let instance_pos = [this.Instances[instance].stats.x,  this.Instances[instance].stats.y]
-			let conditions02 = hexagon(this.instance_directions[instance])
+		let yellow = 325
+		let condition01 = hexagon(get_degrees(normalize([player_x, player_y],click_pos)))
+		if(this.Instances[0] != null && this.instance_directions[0][0]!=null){
+		let condition02 = this.instance_directions[0][0]
 
-			for(let condition01 in conditions01){
-				for(let condition02 in conditions02){
-					if(condition01 == condition02 && conditions02[condition02][0] && conditions01[condition01][0] && this.Instances[instance].animate_id==0){
-					if(distance(instance_pos, [player_x, player_y])<yellow){
-						this.Instances[instance].stats.velocity = {x:0,y:0}
-						this.Instances[instance].animate_id = 1
-					}
-					if(distance(instance_pos, [player_x, player_y])<yellow && distance(instance_pos, [player_x, player_y])>green){
-						this.objects.round_obj_yellow.animate_id = 1
-						this.points += 3
-					}
-					if(distance(instance_pos, [player_x, player_y])<green){
-						this.objects.round_obj_green.animate_id = 1
-						this.points += 2
-					}
-					break
-					}
-			}
+		let index_instance = this.Instances.length - this.instance_directions[0].length
+	  let instance_pos = [this.Instances[index_instance].stats.x, this.Instances[index_instance].stats.y]
+
+		if(condition01==condition02 && this.Instances[index_instance].animate_id==0){
+		if(distance(instance_pos, [player_x, player_y])<yellow){
+				this.Instances[index_instance].stats.velocity = {x:0,y:0}
+				this.Instances[index_instance].animate_id = 1
+				this.Instances[index_instance].frame = 0
+		    }
+		if(distance(instance_pos, [player_x, player_y])<yellow && distance(instance_pos, [player_x, player_y])>green){
+				this.objects.round_obj_yellow.animate_id = 1
+				this.objects.round_obj_yellow.frame = 0
+				this.points += 3
+				}
+		if(distance(instance_pos, [player_x, player_y])<green){
+				this.objects.round_obj_green.animate_id = 1
+				this.objects.round_obj_green.frame = 0
+				this.points += 2
+				}
+		  }
 		}
-		}
+		this.instance_directions[0] = DeleteFrontArrayElement(this.instance_directions[0])
 		if (prev_points == this.points){
-		this.points = 0
 		this.game_over_bool = true
 		}
 	}
 	update(){
-		for(let instance in this.Instances){
-			this.Instances[instance].update()
+			for(let instance in this.Instances){
+				this.Instances[instance].update()
+			}
+			if (this.Instances[0] != null){
 			let player_x = this.player.stats.x + this.player.stats.width/2 - this.sprite_stats.width/2 
 			let player_y = this.player.stats.y + this.player.stats.height/2 - this.sprite_stats.height/2
-			let condition = distance([player_x, player_y],[this.Instances[instance].stats.x, this.Instances[instance].stats.y]) < 30
-			if(condition && this.Instances[instance].animate_id==0){
+			let condition = distance([player_x, player_y],[this.Instances[0].stats.x, this.Instances[0].stats.y]) < 30
+			if(condition && this.Instances[0].animate_id==0){
 				this.game_over_bool = true
-				this.points = 0
-				this.Instances[instance].stats.velocity = {x:0,y:0}
-				this.Instances[instance].animate_id = 1
+				this.Instances[0].stats.velocity = {x:0,y:0}
+				this.Instances[0].animate_id = 1
 			}
-			if(this.Instances[instance].frame == this.Instances[instance].animations[1].length && this.Instances[instance].animate_id != 0){
-				delete this.Instances[instance]
+			if(this.Instances[0].frame == this.Instances[0].animations[1].length && this.Instances[0].animate_id != 0){
+				this.Instances = DeleteFrontArrayElement(this.Instances)
 			}
 		}
 	}
@@ -287,9 +299,14 @@ const player = new Sprite({x:canvas.width/2, y:canvas.height/2, height: 450, wid
 
 const round_green = new Sprite({x:canvas.width/2, y:canvas.height/2, height:500, width: 500, animations:[get_unit_frame("assets\\animation\\round_green\\round_green", "round_green_00.png"), get_frames("assets\\animation\\round_green\\round_green", 'round_green', 30), get_frames("assets\\animation\\round_red\\round_in", 'red_in', 30)]})
 const round_yellow = new Sprite({x:canvas.width/2, y:canvas.height/2, height:600, width: 600, animations:[get_unit_frame("assets\\animation\\round_yellow", "round_yellow_00.png"), get_frames("assets\\animation\\round_yellow", 'round_yellow', 30), get_frames("assets\\animation\\round_red\\round_out", 'red_out', 30)]})
-const bullet = new Instance({speed:10, height:80, width:80, color:"#000000",animations:[get_frames("assets\\animation\\bullet_idle","bullet_idle",30), get_frames("assets\\animation\\bullet_fade", 'bullet_fade', 30)]},player, objects ={round_obj_green:round_green, round_obj_yellow:round_yellow})
+const bullet = new Instance({speed:3, height:80, width:80, color:"#000000",animations:[get_frames("assets\\animation\\bullet_idle","bullet_idle",30), get_frames("assets\\animation\\bullet_fade", 'bullet_fade', 30)]},player, objects ={round_obj_green:round_green, round_obj_yellow:round_yellow})
 
-const game_over = new Sprite({speed:2, x:canvas.width/2, y:canvas.height+canvas.width/2.1, width:canvas.width/2.1, height:canvas.width/2.1, animations:[get_frames("assets\\animation\\game_over\\game_over", "game_over", 90)]})
+
+let game_over_stats = {speed:2, x:canvas.width/2, y:canvas.height+canvas.width/2.1, width:canvas.width/2.1, height:canvas.width/2.1, animations:[get_frames("assets\\animation\\game_over\\game_over", "game_over", 90)]}
+if(canvas.width<canvas.height){
+game_over_stats = {speed:2, x:canvas.width/2, y:canvas.height+canvas.width/3, width:canvas.width*0.95, height:canvas.width*0.95, animations:[get_frames("assets\\animation\\game_over\\game_over", "game_over", 90)]}
+}
+const game_over = new Sprite(game_over_stats)
 game_over.stats.velocity.y = -10
 
 const points = new Counter({x:player.stats.x+player.stats.width/2-32, y:player.stats.y+player.stats.height/2-18}, "40px Orbitron")
@@ -307,7 +324,9 @@ let wait_time = 25
 var counter_frames = 0
 var counter_fr_points = 0
 let final_points = 0
-let time_points = 0
+
+let shoot_frequancy = 1
+let click_counter = 0
 
 function animate () {
 	setTimeout(() => {
@@ -323,7 +342,7 @@ function animate () {
 		counter_fr_points = 0
 	}
 	if(!bullet.game_over_bool){
-	if (counter_frames/fps >= 0.3){
+	if (counter_frames/fps >= shoot_frequancy){
 		counter_frames = 0
 		bullet.shoot([0,0])
 	}
@@ -337,8 +356,19 @@ function animate () {
   }
 	if(!bullet.game_over_bool){
 	points.update(bullet.points)
-	time_points = 0 + bullet.points 
   }
+  
+
+  if(final_points < 99 && click_counter > 5){
+ 	bullet.sprite_stats.speed += 1.5
+  shoot_frequancy -= 0.10
+  click_counter = 0
+  } 
+  else if(final_points>99 && final_points < 198 && click_counter > 5){
+ 	bullet.sprite_stats.speed += 0.1
+  click_counter = 0
+  }
+
 	bullet.update()
 	camera.update(bullet.Instances, [round_green, round_yellow,player,points,background])
 
@@ -375,9 +405,9 @@ function animate () {
 			game_over.stats.velocity.y = 0
 			c.fillStyle = "#753097"
 			c.font = "50px Orbitron"
-			c.fillText("Your score", canvas.width/2-50*3, game_over.stats.y+game_over.stats.height/2.15)
+			c.fillText("Your score", canvas.width/2-50*3, game_over.stats.y+game_over.stats.height/50*23.5)
 			c.font = "45px Orbitron"
-			c.fillText((final_points+time_points).toString().padStart(7,'0'), canvas.width/2-45*2.8, game_over.stats.y+game_over.stats.height/1.71)
+			c.fillText((final_points+bullet.points).toString().padStart(6,'0'), canvas.width/2-45*2.4, game_over.stats.y+game_over.stats.height/45*26.5)
 		}
 	 }
 
@@ -391,6 +421,9 @@ function animate () {
 animate()
 
 window.addEventListener("click", (event) => {
+	if(distance([canvas.width/2, game_over.stats.y+game_over.stats.height*0.15+game_over.stats.width/20], [event.clientX, event.clientY]) < game_over.stats.width/20){
+		location.reload()
+	}
 	if (bullet.game_over_bool){
 		wait_time = 0
 		game_over.stats.speed = 5
@@ -399,5 +432,6 @@ window.addEventListener("click", (event) => {
 	if (!bullet.game_over_bool){
 	bullet.fade([event.clientX, event.clientY])
 	camera.velocity_define([event.clientX, event.clientY])
+	click_counter += 1
 	}
 })
