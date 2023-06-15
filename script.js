@@ -364,8 +364,8 @@ function animate () {
   shoot_frequancy -= 0.10
   click_counter = 0
   } 
-  else if(final_points>99 && click_counter > 5){
- 	bullet.sprite_stats.speed += 0.2
+  else if(final_points>99 && final_points < 198 && click_counter > 5){
+ 	bullet.sprite_stats.speed += 0.1
   click_counter = 0
   }
 
@@ -393,10 +393,10 @@ function animate () {
 			fps += 2
 		}
 
-
 		c.globalAlpha = 1-canvas_opacity
 		c.fillStyle = "#000000" 
 		c.fillRect(0,0,canvas.width, canvas.height)
+
 
 		if(wait_time <= 5){
 		c.globalAlpha = 1
@@ -416,10 +416,10 @@ function animate () {
 			bullet.Instances[instance].stats.velocity = {x:0,y:0} 
 		}
 	}
-	c.globalAlpha = 0.5
-	c.font = "400 25px Roboto"
-	c.fillStyle = "#000000"
-	c.fillText("@ Youtube-channel: breaddays8574", canvas.width-425, canvas.height-25)
+	  c.globalAlpha = 0.5
+		c.font = "400 25px Roboto"
+		c.fillStyle = "#000000"
+		c.fillText("@ Youtube-channel: breaddays8574", canvas.width-425, canvas.height-25)
 }
 
 animate()
