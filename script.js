@@ -364,8 +364,8 @@ function animate () {
   shoot_frequancy -= 0.10
   click_counter = 0
   } 
-  else if(final_points>99 && final_points < 198 && click_counter > 5){
- 	bullet.sprite_stats.speed += 0.1
+  else if(final_points>99 && click_counter > 5){
+ 	bullet.sprite_stats.speed += 0.2
   click_counter = 0
   }
 
