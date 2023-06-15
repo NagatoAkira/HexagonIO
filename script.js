@@ -416,6 +416,10 @@ function animate () {
 			bullet.Instances[instance].stats.velocity = {x:0,y:0} 
 		}
 	}
+	c.globalAlpha = 0.5
+	c.font = "400 25px Roboto"
+	c.fillStyle = "#000000"
+	c.fillText("@ Youtube-channel: breaddays8574", canvas.width-425, canvas.height-25)
 }
 
 animate()
