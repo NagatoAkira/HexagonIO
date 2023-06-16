@@ -1,5 +1,9 @@
+// Initialize Canvas
+
 const canvas = document.querySelector('canvas')
 const c = canvas.getContext('2d')
+
+// Game Update - function for filling background
 
 function game_update() {
 	window_height = parseInt(window.innerHeight)
@@ -13,6 +17,7 @@ function game_update() {
 	c.fillRect(0,0,canvas.width, canvas.height)
 } 
 
+// Additional functions for working in classes
 
 function random_int(min, max) {
   min = Math.ceil(min);
@@ -46,6 +51,15 @@ function DeleteFrontArrayElement(array){
 	return recover_elements
 }
 
+function DeleteUndefinedArrayElements(array){
+	let recover_elements = []
+	for(let i in array){
+		if(array[i] != null){
+			recover_elements.push(array[i])
+		}
+	}
+	return recover_elements
+}
 
 function hexagon(degrees){
 	conditions = [[degrees <= 60 && degrees >= 0, (540+360)/2],
@@ -61,6 +75,9 @@ function hexagon(degrees){
 		}
 	}
 }
+
+
+//Sprite - class for creating animated game object on scene
 
 class Sprite {
 
@@ -116,6 +133,9 @@ class Sprite {
 	}
 }
 
+
+// Instance - class for generating multiple copies of one game object (in our situation: bullet)
+
 class Instance{
 	constructor(sprite_stats, player, objects = []){
 		this.sprite_stats = sprite_stats
@@ -125,6 +145,8 @@ class Instance{
 		this.objects = objects
 		this.instance_directions = [[]]
 		this.game_over_bool = false
+
+		this.clear_bool = false
 	}
 	shoot(){
 		this.Instances.push(new Sprite(this.sprite_stats))
@@ -179,33 +201,57 @@ class Instance{
 				this.points += 2
 				}
 		  }
-		}
+
 		this.instance_directions[0] = DeleteFrontArrayElement(this.instance_directions[0])
+
+		index_instance = this.Instances.length - this.instance_directions[0].length
+
+		if(this.Instances[index_instance]!=null){
+		this.Instances[index_instance].stats.width = this.sprite_stats.width * 1.3
+    this.Instances[index_instance].stats.height = this.sprite_stats.height * 1.3
+    this.Instances[index_instance].stats.x -= this.Instances[index_instance].stats.width/2-this.sprite_stats.width/2
+    this.Instances[index_instance].stats.y -= this.Instances[index_instance].stats.height/2-this.sprite_stats.height/2
+    }
+		}
+    
 		if (prev_points == this.points){
 		this.game_over_bool = true
 		}
 	}
+	clear(){
+	for(let instance in this.Instances){
+		this.Instances[instance].animate_id = 1
+		this.Instances[instance].change_to_animate_id = 1
+		this.Instances[instance].stats.velocity = {x:0,y:0}
+	}
+	this.instance_directions[0] = []
+	}
 	update(){
-			for(let instance in this.Instances){
-				this.Instances[instance].update()
-			}
 			if (this.Instances[0] != null){
 			let player_x = this.player.stats.x + this.player.stats.width/2 - this.sprite_stats.width/2 
 			let player_y = this.player.stats.y + this.player.stats.height/2 - this.sprite_stats.height/2
 			let condition = distance([player_x, player_y],[this.Instances[0].stats.x, this.Instances[0].stats.y]) < 30
-			if(condition && this.Instances[0].animate_id==0){
+			if(condition && this.Instances[0].animate_id==0 || this.Instances[0].stats.y < -500 || this.Instances[0].stats.y > canvas.height+500){
 				this.game_over_bool = true
 				this.Instances[0].stats.velocity = {x:0,y:0}
 				this.Instances[0].animate_id = 1
 			}
-			if(this.Instances[0].frame == this.Instances[0].animations[1].length && this.Instances[0].animate_id != 0){
-				this.Instances = DeleteFrontArrayElement(this.Instances)
-			}
 		}
+		for(let instance in this.Instances){
+			if(this.Instances[instance].frame == this.Instances[instance].animations[1].length && this.Instances[instance].animate_id != 0){
+				this.Instances[instance] = null
+				continue
+			}
+			this.Instances[instance].update()
+		}
+		this.Instances = DeleteUndefinedArrayElements(this.Instances)
 	}
 }
 
 game_update()
+
+// Camera, Visualizer Point Counter, Additional Functions
+
 
 function get_frames(start_path, name, amount){
 	let frames = []
@@ -295,16 +341,18 @@ class Camera{
 }
 
 
+// Variables and Objects
+
+
 const player = new Sprite({x:canvas.width/2, y:canvas.height/2, height: 450, width: 450, animations:[get_frames("assets\\animation\\heart\\heart_animation", 'heart_animation', 90), get_frames("assets\\animation\\heart\\broken_heart", "broken_heart",90)]})
 
 const round_green = new Sprite({x:canvas.width/2, y:canvas.height/2, height:500, width: 500, animations:[get_unit_frame("assets\\animation\\round_green\\round_green", "round_green_00.png"), get_frames("assets\\animation\\round_green\\round_green", 'round_green', 30), get_frames("assets\\animation\\round_red\\round_in", 'red_in', 30)]})
 const round_yellow = new Sprite({x:canvas.width/2, y:canvas.height/2, height:600, width: 600, animations:[get_unit_frame("assets\\animation\\round_yellow", "round_yellow_00.png"), get_frames("assets\\animation\\round_yellow", 'round_yellow', 30), get_frames("assets\\animation\\round_red\\round_out", 'red_out', 30)]})
 const bullet = new Instance({speed:3, height:80, width:80, color:"#000000",animations:[get_frames("assets\\animation\\bullet_idle","bullet_idle",30), get_frames("assets\\animation\\bullet_fade", 'bullet_fade', 30)]},player, objects ={round_obj_green:round_green, round_obj_yellow:round_yellow})
 
-
 let game_over_stats = {speed:2, x:canvas.width/2, y:canvas.height+canvas.width/2.1, width:canvas.width/2.1, height:canvas.width/2.1, animations:[get_frames("assets\\animation\\game_over\\game_over", "game_over", 90)]}
 if(canvas.width<canvas.height){
-game_over_stats = {speed:2, x:canvas.width/2, y:canvas.height+canvas.width/3, width:canvas.width*0.95, height:canvas.width*0.95, animations:[get_frames("assets\\animation\\game_over\\game_over", "game_over", 90)]}
+game_over_stats = {speed:3, x:canvas.width/2, y:canvas.height+canvas.width/3, width:canvas.width*0.95, height:canvas.width*0.95, animations:[get_frames("assets\\animation\\game_over\\game_over", "game_over", 90)]}
 }
 const game_over = new Sprite(game_over_stats)
 game_over.stats.velocity.y = -10
@@ -325,9 +373,11 @@ var counter_frames = 0
 var counter_fr_points = 0
 let final_points = 0
 
-let shoot_frequancy = 1
+let shoot_frequancy = 0.7
 let click_counter = 0
 
+
+// Scene where we can draw game objects
 function animate () {
 	setTimeout(() => {
     	window.requestAnimationFrame(animate);
@@ -357,17 +407,17 @@ function animate () {
 	if(!bullet.game_over_bool){
 	points.update(bullet.points)
   }
-  
 
-  if(final_points < 99 && click_counter > 5){
+  if(click_counter > 5){
+  if(bullet.sprite_stats.speed < 49){
  	bullet.sprite_stats.speed += 1.5
-  shoot_frequancy -= 0.10
-  click_counter = 0
-  } 
-  else if(final_points>99 && final_points < 198 && click_counter > 5){
- 	bullet.sprite_stats.speed += 0.1
-  click_counter = 0
   }
+  if(shoot_frequancy>0.25){
+ 	shoot_frequancy -= 0.02
+  }
+  click_counter = 0
+  bullet.clear()
+  } 
 
 	bullet.update()
 	camera.update(bullet.Instances, [round_green, round_yellow,player,points,background])
@@ -413,7 +463,7 @@ function animate () {
 
 		for(instance in bullet.Instances){
 			bullet.Instances[instance].animate_id = 1
-			bullet.Instances[instance].stats.velocity = {x:0,y:0} 
+			bullet.Instances[instance].stats.velocity = {x:0,y:0}
 		}
 	}
 	  c.globalAlpha = 0.5
@@ -423,6 +473,8 @@ function animate () {
 }
 
 animate()
+
+// Listener which checks clicks
 
 window.addEventListener("click", (event) => {
 	if(distance([canvas.width/2, game_over.stats.y+game_over.stats.height*0.15+game_over.stats.width/20], [event.clientX, event.clientY]) < game_over.stats.width/20){
@@ -436,6 +488,7 @@ window.addEventListener("click", (event) => {
 	if (!bullet.game_over_bool){
 	bullet.fade([event.clientX, event.clientY])
 	camera.velocity_define([event.clientX, event.clientY])
+
 	click_counter += 1
 	}
 })
